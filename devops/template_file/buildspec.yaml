@@ -13,7 +13,7 @@ phases:
   build:
     commands:
       - echo Building React Application
-      - cd frontend-deployment && npm run build
+      - npm run build
 
 # No post_build deploy step here.
 # Deployment is handled as a separate stage in CodePipeline (S3 Deploy action).
