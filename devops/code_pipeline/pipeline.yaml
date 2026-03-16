@@ -25,6 +25,12 @@ Parameters:
     Type: String
     Description: CloudFront Distribution ID for cache invalidation (output of frontend_template stack)
 
+  GitHubConnectionArn:
+    Type: String
+    Description: >-
+      ARN of a manually created and AVAILABLE CodeStar GitHub connection.
+      Create this in AWS Console: CodePipeline > Settings > Connections > Create connection > GitHub
+
 # ── Resources ─────────────────────────────────────────────────
 Resources:
 
@@ -127,15 +133,11 @@ Resources:
                 Resource: '*'
 
   # ── GitHub Connection ─────────────────────────────────────────
-  # Creates a CodeStar connection to GitHub.
-  # NOTE: After stack deploy, this will be in PENDING state.
-  # You must complete GitHub OAuth authorization in the AWS Console once.
-  # setup.sh will wait and poll until this is AVAILABLE.
-  GitHubConnection:
-    Type: AWS::CodeStarConnections::Connection
-    Properties:
-      ConnectionName: github-frontend-connection
-      ProviderType: GitHub
+  # NOTE: The connection is NOT created by CloudFormation here.
+  # Connections created via CloudFormation have OAuth issues.
+  # Instead, create it manually in the AWS Console:
+  #   CodePipeline > Settings > Connections > Create connection > GitHub
+  # Then paste the ARN into .env as GITHUB_CONNECTION_ARN.
 
   # ── CodeBuild: React Build Project ───────────────────────────
   # Runs npm install + npm run build inside frontend-deployment/.
@@ -203,7 +205,7 @@ Resources:
               OutputArtifacts:
                 - Name: SourceOutput
               Configuration:
-                ConnectionArn: !Ref GitHubConnection  # References connection created above
+                ConnectionArn: !Ref GitHubConnectionArn  # Passed in from .env
                 FullRepositoryId: !Ref GitHubOrgRepo
                 BranchName: !Ref GitHubBranch
 
@@ -258,12 +260,6 @@ Outputs:
   PipelineName:
     Description: Name of the created CodePipeline
     Value: !Ref Pipeline
-
-  GitHubConnectionArn:
-    Description: >
-      ARN of the GitHub connection. Complete OAuth authorization
-      in the AWS Console before the pipeline can run.
-    Value: !Ref GitHubConnection
 
   ArtifactsBucketName:
     Description: S3 bucket used for pipeline artifacts

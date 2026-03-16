@@ -36,7 +36,8 @@ set +a
 
 # Validate required config vars are filled in
 REQUIRED_VARS=(GITHUB_ORG_REPO GITHUB_BRANCH BUCKET_NAME
-               INFRA_STACK_NAME PIPELINE_STACK_NAME AWS_REGION)
+               INFRA_STACK_NAME PIPELINE_STACK_NAME AWS_REGION
+               GITHUB_CONNECTION_ARN)
 
 for VAR in "${REQUIRED_VARS[@]}"; do
   VALUE="${!VAR}"
@@ -146,56 +147,10 @@ aws cloudformation deploy \
     GitHubBranch="$GITHUB_BRANCH" \
     FrontendBucketName="$STACK_BUCKET" \
     CloudFrontDistributionId="$DISTRIBUTION_ID" \
+    GitHubConnectionArn="$GITHUB_CONNECTION_ARN" \
   --region "$AWS_REGION"
 
 ok "Pipeline stack deployed."
-divider
-
-# ── Step 5: Wait for GitHub OAuth ────────────────────────────
-echo "[ Step 5 ] Activating GitHub connection..."
-
-# Get the connection ARN from the stack output
-CONNECTION_ARN=$(aws cloudformation describe-stacks \
-  --stack-name "$PIPELINE_STACK_NAME" \
-  --region "$AWS_REGION" \
-  --query "Stacks[0].Outputs[?OutputKey=='GitHubConnectionArn'].OutputValue" \
-  --output text)
-
-CONNECTION_STATUS=$(aws codestar-connections get-connection \
-  --connection-arn "$CONNECTION_ARN" \
-  --query "Connection.ConnectionStatus" \
-  --output text)
-
-if [ "$CONNECTION_STATUS" != "AVAILABLE" ]; then
-  echo ""
-  echo -e "${YELLOW}  ┌────────────────────────────────────────────────────────┐${NC}"
-  echo -e "${YELLOW}  │   ACTION REQUIRED — Authorize GitHub in your browser   │${NC}"
-  echo -e "${YELLOW}  │                                                        │${NC}"
-  echo -e "${YELLOW}  │  1. Open:                                              │${NC}"
-  echo -e "${YELLOW}  │     https://${AWS_REGION}.console.aws.amazon.com/      │${NC}"
-  echo -e "${YELLOW}  │     codesuite/settings/connections                    │${NC}"
-  echo -e "${YELLOW}  │  2. Find: github-frontend-connection                  │${NC}"
-  echo -e "${YELLOW}  │  3. Click \"Update pending connection\"                  │${NC}"
-  echo -e "${YELLOW}  │  4. Authorize with your GitHub account                │${NC}"
-  echo -e "${YELLOW}  └────────────────────────────────────────────────────────┘${NC}"
-  echo ""
-  info "Polling every 10 seconds until authorized..."
-
-  while true; do
-    sleep 10
-    STATUS=$(aws codestar-connections get-connection \
-      --connection-arn "$CONNECTION_ARN" \
-      --query "Connection.ConnectionStatus" \
-      --output text)
-    if [ "$STATUS" == "AVAILABLE" ]; then
-      ok "GitHub connection is now AVAILABLE!"
-      break
-    fi
-    info "Still waiting... (status: $STATUS)"
-  done
-else
-  ok "GitHub connection is already AVAILABLE."
-fi
 divider
 
 # ── Done ─────────────────────────────────────────────────────
