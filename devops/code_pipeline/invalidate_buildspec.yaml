@@ -1,0 +1,15 @@
+version: 0.2
+
+# This buildspec is used by the CloudFront invalidation CodeBuild project.
+# It is triggered as the second action in the Deploy stage of CodePipeline,
+# AFTER the S3 Deploy action has uploaded the React build files.
+#
+# Required environment variable in the CodeBuild project:
+#   CLOUDFRONT_DISTRIBUTION = <your CloudFront Distribution ID>
+
+phases:
+  build:
+    commands:
+      - echo Running CloudFront cache invalidation
+      - chmod +x devops/code_pipeline/deploy.sh
+      - devops/code_pipeline/deploy.sh

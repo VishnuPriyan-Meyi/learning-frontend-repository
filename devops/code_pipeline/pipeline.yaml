@@ -1,0 +1,270 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  React Frontend CI/CD Pipeline.
+  Defines ALL related resources in one stack:
+  IAM roles, CodeBuild projects, GitHub connection, and the pipeline itself.
+
+# ── Parameters ────────────────────────────────────────────────
+# These are passed in by setup.sh from .env values.
+Parameters:
+
+  GitHubOrgRepo:
+    Type: String
+    Description: GitHub repository in ORG/REPO format (e.g. myorg/learning-frontend-repository)
+
+  GitHubBranch:
+    Type: String
+    Default: main
+    Description: Branch to watch and trigger the pipeline on
+
+  FrontendBucketName:
+    Type: String
+    Description: S3 bucket name where the React app is deployed (output of frontend_template stack)
+
+  CloudFrontDistributionId:
+    Type: String
+    Description: CloudFront Distribution ID for cache invalidation (output of frontend_template stack)
+
+# ── Resources ─────────────────────────────────────────────────
+Resources:
+
+  # ── Artifacts Bucket ─────────────────────────────────────────
+  # S3 bucket used by CodePipeline to pass artifacts between stages.
+  # Created here so CloudFormation manages its lifecycle.
+  ArtifactsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      LifecycleConfiguration:
+        Rules:
+          - Status: Enabled
+            ExpirationInDays: 30  # Auto-clean old artifacts after 30 days
+
+  # ── IAM Role: CodePipeline ────────────────────────────────────
+  # Allows CodePipeline to read/write S3, trigger CodeBuild, and use the GitHub connection.
+  CodePipelineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: CodePipelineRole
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: codepipeline.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: CodePipelinePermissions
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:GetBucketVersioning
+                  - s3:ListBucket
+                  - s3:GetObjectVersion
+                  - s3:DeleteObject
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - codebuild:StartBuild
+                  - codebuild:BatchGetBuilds
+                  - codebuild:BatchGetProjects
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - codestar-connections:UseConnection
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - iam:PassRole
+                Resource: '*'
+
+  # ── IAM Role: CodeBuild ───────────────────────────────────────
+  # Allows CodeBuild to write logs, access S3, and invalidate CloudFront.
+  CodeBuildRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: CodeBuildRole
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: codebuild.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: CodeBuildPermissions
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:GetObjectVersion
+                  - s3:ListBucket
+                  - s3:GetBucketAcl
+                  - s3:GetBucketLocation
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - cloudfront:CreateInvalidation
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - codebuild:CreateReportGroup
+                  - codebuild:CreateReport
+                  - codebuild:UpdateReport
+                  - codebuild:BatchPutTestCases
+                Resource: '*'
+
+  # ── GitHub Connection ─────────────────────────────────────────
+  # Creates a CodeStar connection to GitHub.
+  # NOTE: After stack deploy, this will be in PENDING state.
+  # You must complete GitHub OAuth authorization in the AWS Console once.
+  # setup.sh will wait and poll until this is AVAILABLE.
+  GitHubConnection:
+    Type: AWS::CodeStarConnections::Connection
+    Properties:
+      ConnectionName: github-frontend-connection
+      ProviderType: GitHub
+
+  # ── CodeBuild: React Build Project ───────────────────────────
+  # Runs npm install + npm run build inside frontend-deployment/.
+  # Uses devops/template_file/buildspec.yaml.
+  ReactBuildProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: react-build-project
+      ServiceRole: !GetAtt CodeBuildRole.Arn
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: devops/template_file/buildspec.yaml
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment:
+        Type: LINUX_CONTAINER
+        Image: aws/codebuild/standard:7.0
+        ComputeType: BUILD_GENERAL1_SMALL
+        ImagePullCredentialsType: CODEBUILD
+
+  # ── CodeBuild: CloudFront Invalidation Project ────────────────
+  # Runs deploy.sh to invalidate the CloudFront cache after S3 upload.
+  # Uses devops/code_pipeline/invalidate_buildspec.yaml.
+  CloudFrontInvalidationProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: cloudfront-invalidation-project
+      ServiceRole: !GetAtt CodeBuildRole.Arn
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: devops/code_pipeline/invalidate_buildspec.yaml
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment:
+        Type: LINUX_CONTAINER
+        Image: aws/codebuild/standard:7.0
+        ComputeType: BUILD_GENERAL1_SMALL
+        ImagePullCredentialsType: CODEBUILD
+        EnvironmentVariables:
+          - Name: CLOUDFRONT_DISTRIBUTION
+            Value: !Ref CloudFrontDistributionId
+            Type: PLAINTEXT
+
+  # ── CodePipeline ──────────────────────────────────────────────
+  Pipeline:
+    Type: AWS::CodePipeline::Pipeline
+    Properties:
+      RoleArn: !GetAtt CodePipelineRole.Arn
+
+      ArtifactStore:
+        Type: S3
+        Location: !Ref ArtifactsBucket  # References the bucket created above
+
+      Stages:
+
+        # Stage 1: Source — pull code from GitHub on push to branch
+        - Name: Source
+          Actions:
+            - Name: GitHubSource
+              ActionTypeId:
+                Category: Source
+                Owner: AWS
+                Provider: CodeStarSourceConnection
+                Version: 1
+              OutputArtifacts:
+                - Name: SourceOutput
+              Configuration:
+                ConnectionArn: !Ref GitHubConnection  # References connection created above
+                FullRepositoryId: !Ref GitHubOrgRepo
+                BranchName: !Ref GitHubBranch
+
+        # Stage 2: Build — npm install + npm run build
+        - Name: Build
+          Actions:
+            - Name: ReactBuild
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Provider: CodeBuild
+                Version: 1
+              InputArtifacts:
+                - Name: SourceOutput
+              OutputArtifacts:
+                - Name: BuildOutput
+              Configuration:
+                ProjectName: !Ref ReactBuildProject  # References CodeBuild project above
+
+        # Stage 3: Deploy — upload to S3, then invalidate CloudFront
+        - Name: Deploy
+          Actions:
+
+            - Name: S3Deploy
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Provider: S3
+                Version: 1
+              InputArtifacts:
+                - Name: BuildOutput
+              Configuration:
+                BucketName: !Ref FrontendBucketName
+                Extract: true
+              RunOrder: 1
+
+            - Name: CloudFrontInvalidation
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Provider: CodeBuild
+                Version: 1
+              InputArtifacts:
+                - Name: SourceOutput
+              Configuration:
+                ProjectName: !Ref CloudFrontInvalidationProject  # References project above
+              RunOrder: 2
+
+# ── Outputs ───────────────────────────────────────────────────
+Outputs:
+
+  PipelineName:
+    Description: Name of the created CodePipeline
+    Value: !Ref Pipeline
+
+  GitHubConnectionArn:
+    Description: >
+      ARN of the GitHub connection. Complete OAuth authorization
+      in the AWS Console before the pipeline can run.
+    Value: !Ref GitHubConnection
+
+  ArtifactsBucketName:
+    Description: S3 bucket used for pipeline artifacts
+    Value: !Ref ArtifactsBucket

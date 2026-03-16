@@ -1,0 +1,109 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: React Frontend Infrastructure — S3 bucket + CloudFront distribution
+
+Parameters:
+  BucketName:
+    Type: String
+    Description: Globally unique name for the S3 bucket hosting the React app
+
+Resources:
+
+  # ── S3 Bucket ─────────────────────────────────────────────────
+  # Stores the built React files. NOT public — only CloudFront can read it.
+  FrontendBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref BucketName
+      VersioningConfiguration:
+        Status: Enabled
+      # Block all public access — CloudFront uses OAC to access privately
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  # ── S3 Bucket Policy ──────────────────────────────────────────
+  # Grants CloudFront (via OAC) read access to the bucket.
+  # Without this, CloudFront returns 403 Access Denied for every request.
+  FrontendBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref FrontendBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub '${FrontendBucket.Arn}/*'
+            Condition:
+              StringEquals:
+                # Restricts access to only THIS CloudFront distribution
+                AWS:SourceArn: !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${CloudFrontDistribution}'
+
+  # ── CloudFront Origin Access Control (OAC) ────────────────────
+  # Modern replacement for OAI — allows CloudFront to securely access
+  # the private S3 bucket. Required for the bucket policy above to work.
+  CloudFrontOAC:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: FrontendS3OAC
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  # ── CloudFront Distribution ───────────────────────────────────
+  CloudFrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        DefaultRootObject: index.html
+        Comment: React Frontend Distribution
+
+        Origins:
+          - Id: ReactS3Origin
+            DomainName: !GetAtt FrontendBucket.RegionalDomainName
+            # Use OAC (not legacy OAI) for secure private S3 access
+            OriginAccessControlId: !GetAtt CloudFrontOAC.Id
+            S3OriginConfig:
+              OriginAccessIdentity: ''  # Empty string required when using OAC
+
+        DefaultCacheBehavior:
+          TargetOriginId: ReactS3Origin
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods:
+            - GET
+            - HEAD
+          # Required field — defines how query strings/cookies are cached
+          ForwardedValues:
+            QueryString: false
+            Cookies:
+              Forward: none
+
+        # React Router support — serve index.html for 403/404 errors
+        # so client-side routing works correctly
+        CustomErrorResponses:
+          - ErrorCode: 403
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+          - ErrorCode: 404
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+
+        ViewerCertificate:
+          CloudFrontDefaultCertificate: true
+
+# ── Outputs ───────────────────────────────────────────────────
+Outputs:
+
+  BucketName:
+    Description: S3 bucket where React build files are stored
+    Value: !Ref FrontendBucket
+
+  CloudFrontURL:
+    Description: Public URL of the CloudFront distribution
+    Value: !Sub 'https://${CloudFrontDistribution.DomainName}'
