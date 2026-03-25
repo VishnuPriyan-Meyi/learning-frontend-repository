@@ -63,6 +63,12 @@ load_env_config() {
 # Validate required environment variables from associative arrays
 # Usage: validate_env_arrays
 validate_env_arrays() {
+  # Debug: Check if arrays are loaded
+  echo "DEBUG: GitHub ORG='${GITHUB[ORG]}'"
+  echo "DEBUG: GitHub REPO='${GITHUB[REPO]}'"
+  echo "DEBUG: GitHub BRANCH='${GITHUB[BRANCH]}'"
+  echo "DEBUG: GitHub CONNECTION_ARN='${GITHUB[CONNECTION_ARN]}'"
+  
   # Check GitHub config
   if [ -z "${GITHUB[ORG]}" ] || [ -z "${GITHUB[REPO]}" ] || [ -z "${GITHUB[BRANCH]}" ] || [ -z "${GITHUB[CONNECTION_ARN]}" ]; then
     fail "GitHub configuration is incomplete. Please check GITHUB array in dev.env.sh"
