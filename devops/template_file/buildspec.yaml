@@ -19,8 +19,6 @@ phases:
 # Deployment is handled as a separate stage in CodePipeline (S3 Deploy action).
 
 artifacts:
-  # Export only the built React files, not the entire repo.
-  # The S3 Deploy action will extract these directly into the S3 bucket.
   base-directory: frontend-deployment/build
   files:
     - '**/*'

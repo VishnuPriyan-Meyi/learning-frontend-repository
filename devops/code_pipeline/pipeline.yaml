@@ -1,12 +1,17 @@
 AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
 Description: >
-  React Frontend CI/CD Pipeline.
+  React Frontend CI/CD Pipeline (SAM).
   Defines ALL related resources in one stack:
   IAM roles, CodeBuild projects, GitHub connection, and the pipeline itself.
 
 # ── Parameters ────────────────────────────────────────────────
 # These are passed in by setup.sh from .env values.
 Parameters:
+
+  BootstrapStackName:
+    Type: String
+    Description: Name of the bootstrap stack that contains the shared artifact bucket
 
   GitHubOrgRepo:
     Type: String
@@ -34,16 +39,13 @@ Parameters:
 # ── Resources ─────────────────────────────────────────────────
 Resources:
 
-  # ── Artifacts Bucket ─────────────────────────────────────────
-  # S3 bucket used by CodePipeline to pass artifacts between stages.
-  # Created here so CloudFormation manages its lifecycle.
+  # ── Import Shared Artifacts Bucket ────────────────────────────
+  # Uses the same shared bucket from bootstrap stack for consistency
   ArtifactsBucket:
     Type: AWS::S3::Bucket
     Properties:
-      LifecycleConfiguration:
-        Rules:
-          - Status: Enabled
-            ExpirationInDays: 30  # Auto-clean old artifacts after 30 days
+      BucketName: 
+        Fn::ImportValue: !Sub "${BootstrapStackName}-SharedArtifactBucketName"
 
   # ── IAM Role: CodePipeline ────────────────────────────────────
   # Allows CodePipeline to read/write S3, trigger CodeBuild, and use the GitHub connection.
@@ -71,21 +73,31 @@ Resources:
                   - s3:ListBucket
                   - s3:GetObjectVersion
                   - s3:DeleteObject
-                Resource: '*'
+                Resource: 
+                  - Fn::ImportValue: !Sub "${BootstrapStackName}-SharedArtifactBucketArn"
               - Effect: Allow
                 Action:
                   - codebuild:StartBuild
                   - codebuild:BatchGetBuilds
                   - codebuild:BatchGetProjects
-                Resource: '*'
+                Resource: 
+                  - !GetAtt ReactBuildProject.Arn
+                  - !GetAtt CloudFrontInvalidationProject.Arn
               - Effect: Allow
                 Action:
                   - codestar-connections:UseConnection
-                Resource: '*'
+                Resource: 
+                  - !Ref GitHubConnectionArn
               - Effect: Allow
                 Action:
                   - iam:PassRole
-                Resource: '*'
+                Resource: 
+                  - !GetAtt CodeBuildRole.Arn
+                  - !GetAtt CloudFrontInvalidationProject.Arn
+              - Effect: Allow
+                Action:
+                  - iam:PassRole
+                Resource: !GetAtt CodeBuildRole.Arn
 
   # ── IAM Role: CodeBuild ───────────────────────────────────────
   # Allows CodeBuild to write logs, access S3, and invalidate CloudFront.
@@ -110,7 +122,8 @@ Resources:
                   - logs:CreateLogGroup
                   - logs:CreateLogStream
                   - logs:PutLogEvents
-                Resource: '*'
+                Resource: 
+                  - Fn::Sub: 'arn:aws:logs:*:log-group:/aws/codebuild/react-build-project'
               - Effect: Allow
                 Action:
                   - s3:GetObject
@@ -119,18 +132,28 @@ Resources:
                   - s3:ListBucket
                   - s3:GetBucketAcl
                   - s3:GetBucketLocation
-                Resource: '*'
+                Resource: 
+                  - Fn::ImportValue: !Sub "${BootstrapStackName}-SharedArtifactBucketArn"
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:DeleteObject
+                Resource: 
+                  - Fn::Sub: "${BootstrapStackName}-SharedArtifactBucketArn}/frontend/*"
               - Effect: Allow
                 Action:
                   - cloudfront:CreateInvalidation
-                Resource: '*'
+                Resource: 
+                  - Fn::Sub: 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${CloudFrontDistributionId}'
               - Effect: Allow
                 Action:
                   - codebuild:CreateReportGroup
                   - codebuild:CreateReport
                   - codebuild:UpdateReport
                   - codebuild:BatchPutTestCases
-                Resource: '*'
+                Resource: 
+                  - Fn::Sub: 'arn:aws:logs:*:log-group:/aws/codebuild/cloudfront-invalidation-project'
 
   # ── GitHub Connection ─────────────────────────────────────────
   # NOTE: The connection is NOT created by CloudFormation here.
@@ -157,6 +180,14 @@ Resources:
         Image: aws/codebuild/standard:7.0
         ComputeType: BUILD_GENERAL1_SMALL
         ImagePullCredentialsType: CODEBUILD
+        EnvironmentVariables:
+          - Name: ARTIFACTS_BUCKET
+            Value: 
+              Fn::ImportValue: !Sub "${BootstrapStackName}-SharedArtifactBucketName"
+            Type: PLAINTEXT
+          - Name: ARTIFACT_BUCKET_PREFIX
+            Value: frontend/
+            Type: PLAINTEXT
 
   # ── CodeBuild: CloudFront Invalidation Project ────────────────
   # Runs deploy.sh to invalidate the CloudFront cache after S3 upload.

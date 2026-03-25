@@ -1,35 +1,31 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: React Frontend Infrastructure — S3 bucket + CloudFront distribution
+Transform: AWS::Serverless-2016-10-31
+Description: React Frontend Infrastructure — CloudFront distribution (SAM)
 
 Parameters:
-  BucketName:
+  BootstrapStackName:
     Type: String
-    Description: Globally unique name for the S3 bucket hosting the React app
+    Description: Name of the bootstrap stack that contains the shared artifact bucket
+  CloudFrontDistribution:
+    Type: String
+    Description: Name of the CloudFront distribution
 
 Resources:
 
-  # ── S3 Bucket ─────────────────────────────────────────────────
-  # Stores the built React files. NOT public — only CloudFront can read it.
-  FrontendBucket:
+  # ── Import Shared S3 Bucket ─────────────────────────────────
+  # Uses existing shared bucket from bootstrap stack
+  SharedBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Ref BucketName
-      VersioningConfiguration:
-        Status: Enabled
-      # Block all public access — CloudFront uses OAC to access privately
-      PublicAccessBlockConfiguration:
-        BlockPublicAcls: true
-        BlockPublicPolicy: true
-        IgnorePublicAcls: true
-        RestrictPublicBuckets: true
+      BucketName: 
+        Fn::ImportValue: !Sub "${BootstrapStackName}-SharedArtifactBucketName"
 
   # ── S3 Bucket Policy ──────────────────────────────────────────
-  # Grants CloudFront (via OAC) read access to the bucket.
-  # Without this, CloudFront returns 403 Access Denied for every request.
-  FrontendBucketPolicy:
+  # Grants CloudFront (via OAC) read access to the shared bucket.
+  SharedBucketPolicy:
     Type: AWS::S3::BucketPolicy
     Properties:
-      Bucket: !Ref FrontendBucket
+      Bucket: !Ref SharedBucket
       PolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -37,7 +33,8 @@ Resources:
             Principal:
               Service: cloudfront.amazonaws.com
             Action: s3:GetObject
-            Resource: !Sub '${FrontendBucket.Arn}/*'
+            Resource: 
+              - Fn::Sub: "${SharedBucket}/*"
             Condition:
               StringEquals:
                 # Restricts access to only THIS CloudFront distribution
@@ -66,7 +63,7 @@ Resources:
 
         Origins:
           - Id: ReactS3Origin
-            DomainName: !GetAtt FrontendBucket.RegionalDomainName
+            DomainName: !GetAtt SharedBucket.RegionalDomainName
             # Use OAC (not legacy OAI) for secure private S3 access
             OriginAccessControlId: !GetAtt CloudFrontOAC.Id
             S3OriginConfig:
@@ -102,7 +99,7 @@ Outputs:
 
   BucketName:
     Description: S3 bucket where React build files are stored
-    Value: !Ref FrontendBucket
+    Value: !Ref SharedBucket
 
   CloudFrontURL:
     Description: Public URL of the CloudFront distribution
