@@ -12,37 +12,9 @@ Parameters:
 
 Resources:
 
-  # ── Import Shared S3 Bucket ─────────────────────────────────
-  # Uses existing shared bucket from bootstrap stack
-  SharedBucket:
-    Type: AWS::S3::Bucket
-    Properties:
-      BucketName: 
-        Fn::ImportValue: !Sub "${BootstrapStackName}-SharedArtifactBucketName"
-
-  # ── S3 Bucket Policy ──────────────────────────────────────────
-  # Grants CloudFront (via OAC) read access to the shared bucket.
-  SharedBucketPolicy:
-    Type: AWS::S3::BucketPolicy
-    Properties:
-      Bucket: !Ref SharedBucket
-      PolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: cloudfront.amazonaws.com
-            Action: s3:GetObject
-            Resource: 
-              - Fn::Sub: "${SharedBucket}/*"
-            Condition:
-              StringEquals:
-                # Restricts access to only THIS CloudFront distribution
-                AWS:SourceArn: !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${CloudFrontDistribution}'
-
   # ── CloudFront Origin Access Control (OAC) ────────────────────
   # Modern replacement for OAI — allows CloudFront to securely access
-  # the private S3 bucket. Required for the bucket policy above to work.
+  # private S3 bucket. Required for bucket policy above to work.
   CloudFrontOAC:
     Type: AWS::CloudFront::OriginAccessControl
     Properties:
@@ -63,7 +35,7 @@ Resources:
 
         Origins:
           - Id: ReactS3Origin
-            DomainName: !GetAtt SharedBucket.RegionalDomainName
+            DomainName: shared-dev-artifact-bucket.s3.us-east-1.amazonaws.com
             # Use OAC (not legacy OAI) for secure private S3 access
             OriginAccessControlId: !GetAtt CloudFrontOAC.Id
             S3OriginConfig:
@@ -99,7 +71,7 @@ Outputs:
 
   BucketName:
     Description: S3 bucket where React build files are stored
-    Value: !Ref SharedBucket
+    Value: shared-dev-artifact-bucket
 
   CloudFrontURL:
     Description: Public URL of CloudFront distribution
