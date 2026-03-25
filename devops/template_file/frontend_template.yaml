@@ -53,7 +53,7 @@ Resources:
         SigningProtocol: sigv4
 
   # ── CloudFront Distribution ───────────────────────────────────
-  CloudFrontDistribution:
+  FrontendDistribution:
     Type: AWS::CloudFront::Distribution
     Properties:
       DistributionConfig:
@@ -102,5 +102,5 @@ Outputs:
     Value: !Ref SharedBucket
 
   CloudFrontURL:
-    Description: Public URL of the CloudFront distribution
-    Value: !Sub 'https://${CloudFrontDistribution.DomainName}'
+    Description: Public URL of CloudFront distribution
+    Value: !Sub 'https://${FrontendDistribution.DomainName}'
