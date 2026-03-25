@@ -12,6 +12,10 @@ Parameters:
   SharedBucketName:
     Type: String
     Description: Name of the shared S3 bucket for artifacts
+  AWSRegion:
+    Type: String
+    Description: AWS region for deployment
+    Default: us-east-1
 
 Resources:
 
@@ -38,7 +42,7 @@ Resources:
 
         Origins:
           - Id: ReactS3Origin
-            DomainName: !Sub "${SharedBucketName}.s3.us-east-1.amazonaws.com"
+            DomainName: !Sub "${SharedBucketName}.s3.${AWSRegion}.amazonaws.com"
             # Use OAC (not legacy OAI) for secure private S3 access
             OriginAccessControlId: !GetAtt CloudFrontOAC.Id
             S3OriginConfig:

@@ -55,6 +55,7 @@ sam deploy \
     BootstrapStackName="$BOOTSTRAP_STACK_NAME" \
     CloudFrontDistribution="$STACK_INFRA_NAME" \
     SharedBucketName="$BOOTSTRAP_BUCKET_NAME" \
+    AWSRegion="$AWS_REGION" \
   --region "$AWS_REGION"
 
 ok "Infrastructure stack deployed."
