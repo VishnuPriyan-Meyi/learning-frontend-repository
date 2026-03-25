@@ -16,9 +16,16 @@
 # Usage (Git Bash or WSL on Windows):
 #   chmod +x devops/setup.sh
 #   ./devops/setup.sh
+#   ./devops/setup.sh --skip-validation  # Skip AWS CLI validation (for redeployment)
 # =============================================================
 
 set -e  # Exit on any error
+
+SKIP_VALIDATION=false
+if [ "$1" = "--skip-validation" ]; then
+  SKIP_VALIDATION=true
+  echo "Skipping AWS CLI validation for redeployment..."
+fi
 
 # ── Load utility functions ─────────────────────────────────────
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

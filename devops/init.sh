@@ -91,8 +91,14 @@ validate_env_config_full() {
   ok "Environment configuration OK."
 }
 
-# ── Main Validation Function ───────────────────────────────────
+# ── Run prerequisites validation ───────────────────────────────
 validate_prerequisites() {
+  # Check if validation should be skipped
+  if [ "${SKIP_VALIDATION:-false}" = "true" ]; then
+    echo "Skipping prerequisites validation..."
+    return 0
+  fi
+  
   # Load environment config first to make arrays available globally
   load_env_config
   
