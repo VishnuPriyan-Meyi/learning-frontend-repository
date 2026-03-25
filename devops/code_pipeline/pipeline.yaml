@@ -36,16 +36,12 @@ Parameters:
       ARN of a manually created and AVAILABLE CodeStar GitHub connection.
       Create this in AWS Console: CodePipeline > Settings > Connections > Create connection > GitHub
 
+  ArtifactsBucketName:
+    Type: String
+    Description: Name of the existing S3 bucket for artifacts
+
 # ── Resources ─────────────────────────────────────────────────
 Resources:
-
-  # ── Import Shared Artifacts Bucket ────────────────────────────
-  # Uses the same shared bucket from bootstrap stack for consistency
-  ArtifactsBucket:
-    Type: AWS::S3::Bucket
-    Properties:
-      BucketName: 
-        Fn::ImportValue: !Sub "${BootstrapStackName}-SharedArtifactBucketName"
 
   # ── IAM Role: CodePipeline ────────────────────────────────────
   # Allows CodePipeline to read/write S3, trigger CodeBuild, and use the GitHub connection.
@@ -74,7 +70,8 @@ Resources:
                   - s3:GetObjectVersion
                   - s3:DeleteObject
                 Resource: 
-                  - Fn::ImportValue: !Sub "${BootstrapStackName}-SharedArtifactBucketArn"
+                  - !Sub 'arn:aws:s3:::${ArtifactsBucketName}'
+                  - !Sub 'arn:aws:s3:::${ArtifactsBucketName}/*'
               - Effect: Allow
                 Action:
                   - codebuild:StartBuild
@@ -182,8 +179,7 @@ Resources:
         ImagePullCredentialsType: CODEBUILD
         EnvironmentVariables:
           - Name: ARTIFACTS_BUCKET
-            Value: 
-              Fn::ImportValue: !Sub "${BootstrapStackName}-SharedArtifactBucketName"
+            Value: shared-dev-artifact-bucket
             Type: PLAINTEXT
           - Name: ARTIFACT_BUCKET_PREFIX
             Value: frontend/
@@ -220,7 +216,7 @@ Resources:
 
       ArtifactStore:
         Type: S3
-        Location: !Ref ArtifactsBucket  # References the bucket created above
+        Location: shared-dev-artifact-bucket
 
       Stages:
 
@@ -294,4 +290,4 @@ Outputs:
 
   ArtifactsBucketName:
     Description: S3 bucket used for pipeline artifacts
-    Value: !Ref ArtifactsBucket
+    Value: shared-dev-artifact-bucket
