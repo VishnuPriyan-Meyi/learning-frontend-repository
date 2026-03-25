@@ -9,6 +9,9 @@ Parameters:
   CloudFrontDistribution:
     Type: String
     Description: Name of the CloudFront distribution
+  SharedBucketName:
+    Type: String
+    Description: Name of the shared S3 bucket for artifacts
 
 Resources:
 
@@ -35,7 +38,7 @@ Resources:
 
         Origins:
           - Id: ReactS3Origin
-            DomainName: shared-dev-artifact-bucket.s3.us-east-1.amazonaws.com
+            DomainName: !Sub "${SharedBucketName}.s3.us-east-1.amazonaws.com"
             # Use OAC (not legacy OAI) for secure private S3 access
             OriginAccessControlId: !GetAtt CloudFrontOAC.Id
             S3OriginConfig:
@@ -71,7 +74,7 @@ Outputs:
 
   BucketName:
     Description: S3 bucket where React build files are stored
-    Value: shared-dev-artifact-bucket
+    Value: !Ref SharedBucketName
 
   CloudFrontURL:
     Description: Public URL of CloudFront distribution

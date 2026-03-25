@@ -47,6 +47,7 @@ sam deploy \
   --parameter-overrides \
     BootstrapStackName="$BOOTSTRAP_STACK_NAME" \
     CloudFrontDistribution="$STACK_INFRA_NAME" \
+    SharedBucketName="$BOOTSTRAP_BUCKET_NAME" \
   --region "$AWS_REGION"
 
 ok "Infrastructure stack deployed."
@@ -84,6 +85,7 @@ sam deploy \
     FrontendBucketName="$STACK_BUCKET" \
     CloudFrontDistributionId="$DISTRIBUTION_ID" \
     GitHubConnectionArn="$GITHUB_CONNECTION_ARN" \
+    ArtifactsBucketName="$BOOTSTRAP_BUCKET_NAME" \
   --region "$AWS_REGION"
 
 ok "Pipeline stack deployed using SAM."
