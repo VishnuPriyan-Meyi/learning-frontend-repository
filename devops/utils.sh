@@ -58,11 +58,28 @@ load_env_config() {
   # Source the environment file with associative arrays
   # shellcheck disable=SC1090
   source "$ENV_FILE"
+  
+  # Export associative array values as regular variables to avoid scoping issues
+  export GITHUB_ORG="${GITHUB[ORG]}"
+  export GITHUB_REPO="${GITHUB[REPO]}"
+  export GITHUB_BRANCH="${GITHUB[BRANCH]}"
+  export GITHUB_CONNECTION_ARN="${GITHUB[CONNECTION_ARN]}"
+  export AWS_REGION="${AWS[REGION]}"
+  export ENVIRONMENT_ENV="${ENVIRONMENT[ENV]}"
+  export STACK_INFRA_NAME="${STACK[INFRA_NAME]}"
+  export STACK_PIPELINE_NAME="${STACK[PIPELINE_NAME]}"
+  export FRONTEND_BUCKET_NAME="${FRONTEND[BUCKET_NAME]}"
+  export BOOTSTRAP_STACK_NAME="${BOOTSTRAP[STACK_NAME]}"
+  export BOOTSTRAP_BUCKET_NAME="${BOOTSTRAP[BUCKET_NAME]}"
+  export BOOTSTRAP_FRONTEND_PREFIX="${BOOTSTRAP[FRONTEND_PREFIX]}"
 }
 
 # Validate required environment variables from associative arrays
 # Usage: validate_env_arrays
 validate_env_arrays() {
+  # Ensure environment is loaded
+  load_env_config
+  
   # Debug: Check if arrays are loaded
   echo "DEBUG: GitHub ORG='${GITHUB[ORG]}'"
   echo "DEBUG: GitHub REPO='${GITHUB[REPO]}'"
