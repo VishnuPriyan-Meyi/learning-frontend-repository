@@ -62,6 +62,7 @@ Resources:
         Origins:
           - Id: ReactS3Origin
             DomainName: !Sub "${SharedBucketName}.s3.${AWSRegion}.amazonaws.com"
+            OriginPath: /frontend
             # Use OAC (not legacy OAI) for secure private S3 access
             OriginAccessControlId: !GetAtt CloudFrontOAC.Id
             S3OriginConfig:
