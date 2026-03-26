@@ -18,5 +18,6 @@ phases:
 
 artifacts:
   base-directory: frontend-deployment/build
+  discard-paths: no
   files:
     - '**/*'
