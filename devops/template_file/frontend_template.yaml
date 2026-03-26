@@ -33,7 +33,7 @@ Resources:
             Principal:
               Service: cloudfront.amazonaws.com
             Action: s3:GetObject
-            Resource: !Sub "arn:aws:s3:::${SharedBucketName}/*"
+            Resource: !Sub "arn:aws:s3:::${SharedBucketName}/frontend/*"
             Condition:
               StringEquals:
                 AWS:SourceArn: !GetAtt FrontendDistribution.Arn
