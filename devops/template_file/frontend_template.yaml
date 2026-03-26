@@ -19,7 +19,7 @@ Parameters:
 
 Resources:
 
-  # ── CloudFront Origin Access Control (OAC) ────────────────────
+  # ── CloudFront Origin Access Control (OAC)   ────────────────────
   # Modern replacement for OAI — allows CloudFront to securely access
   # private S3 bucket. Required for bucket policy above to work.
   CloudFrontOAC:
