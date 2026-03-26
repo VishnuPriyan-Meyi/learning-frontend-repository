@@ -187,7 +187,7 @@ Resources:
             Value: !Ref ArtifactsBucketName
             Type: PLAINTEXT
           - Name: ARTIFACT_BUCKET_PREFIX
-            Value: frontend/
+            Value: frontend
             Type: PLAINTEXT
 
   # ── CodeBuild: CloudFront Invalidation Project ────────────────
