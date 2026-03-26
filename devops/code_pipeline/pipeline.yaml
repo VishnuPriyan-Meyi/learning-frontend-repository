@@ -272,7 +272,7 @@ Resources:
               Configuration:
                 BucketName: !Ref FrontendBucketName
                 Extract: true
-                ObjectKey: frontend
+                ObjectKey: frontend/
               RunOrder: 1
 
             - Name: CloudFrontInvalidation

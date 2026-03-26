@@ -6,14 +6,12 @@ phases:
       nodejs: 18
     commands:
       - echo Installing dependencies
-      # NOTE: Use && to chain cd with the command — each CodeBuild phase
-      # resets to the source root, so a standalone 'cd' does NOT persist.
-      - cd frontend-deployment && npm install
+      - cd $CODEBUILD_SRC_DIR/frontend-deployment && npm install
 
   build:
     commands:
       - echo Building React Application
-      - cd frontend-deployment && npm run build
+      - cd $CODEBUILD_SRC_DIR/frontend-deployment && npm run build
 
 # No post_build deploy step here.
 # Deployment is handled as a separate stage in CodePipeline (S3 Deploy action).

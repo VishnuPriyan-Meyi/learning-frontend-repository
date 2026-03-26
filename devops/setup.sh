@@ -22,8 +22,30 @@ load_env_config
 
 # ──────────────────────────────────────────────────────────────
 
-# ── Step 1: Deploy Infrastructure (CloudFront) with SAM ────
-echo "[ Step 1 ] Deploying infrastructure stack: $STACK_INFRA_NAME"
+# ── Step 1: Deploy Pipeline Stack with SAM ─────────────────────
+echo "[ Step 1 ] Deploying pipeline stack: $STACK_PIPELINE_NAME"
+info "This creates IAM roles, CodeBuild projects, GitHub connection, and the pipeline using SAM..."
+
+# Use placeholder values for pipeline deployment (will be updated later)
+sam deploy \
+  --template-file "$SCRIPT_DIR/code_pipeline/pipeline.yaml" \
+  --stack-name "$STACK_PIPELINE_NAME" \
+  --capabilities CAPABILITY_NAMED_IAM \
+  --parameter-overrides \
+    BootstrapStackName="$BOOTSTRAP_STACK_NAME" \
+    GitHubOrgRepo="$(get_github_repo)" \
+    GitHubBranch="$GITHUB_BRANCH" \
+    FrontendBucketName="$BOOTSTRAP_BUCKET_NAME" \
+    CloudFrontDistributionId="PLACEHOLDER_DISTRIBUTION_ID" \
+    GitHubConnectionArn="$GITHUB_CONNECTION_ARN" \
+    ArtifactsBucketName="$BOOTSTRAP_BUCKET_NAME" \
+  --region "$AWS_REGION"
+
+ok "Pipeline stack deployed using SAM."
+divider
+
+# ── Step 2: Deploy Infrastructure (CloudFront) with SAM ────
+echo "[ Step 2 ] Deploying infrastructure stack: $STACK_INFRA_NAME"
 info "This creates your S3 bucket and CloudFront distribution using SAM..."
 
 sam deploy \
@@ -40,8 +62,8 @@ sam deploy \
 ok "Infrastructure stack deployed."
 divider
 
-# ── Step 2: Fetch Outputs + Update .env ──────────────────────
-echo "[ Step 2 ] Fetching stack outputs..."
+# ── Step 3: Fetch Outputs + Update Pipeline ─────────────────
+echo "[ Step 3 ] Fetching stack outputs..."
 
 STACK_BUCKET=$(get_stack_output "$STACK_INFRA_NAME" "BucketName" "$AWS_REGION")
 CLOUDFRONT_URL=$(get_stack_output "$STACK_INFRA_NAME" "CloudFrontURL" "$AWS_REGION")
@@ -54,13 +76,8 @@ ok "S3 Bucket:           $STACK_BUCKET"
 ok "CloudFront URL:      $CLOUDFRONT_URL"
 ok "CloudFront Dist. ID: $DISTRIBUTION_ID"
 
-ok "Infrastructure deployed successfully."
-divider
-
-# ── Step 3: Deploy Pipeline Stack with SAM ─────────────────────
-echo "[ Step 3 ] Deploying pipeline stack: $STACK_PIPELINE_NAME"
-info "This creates IAM roles, CodeBuild projects, GitHub connection, and the pipeline using SAM..."
-
+# Update pipeline with correct CloudFront distribution ID
+echo "[ Step 4 ] Updating pipeline with correct CloudFront distribution ID..."
 sam deploy \
   --template-file "$SCRIPT_DIR/code_pipeline/pipeline.yaml" \
   --stack-name "$STACK_PIPELINE_NAME" \
@@ -75,8 +92,10 @@ sam deploy \
     ArtifactsBucketName="$BOOTSTRAP_BUCKET_NAME" \
   --region "$AWS_REGION"
 
-ok "Pipeline stack deployed using SAM."
+ok "Pipeline updated with correct CloudFront distribution ID."
 divider
+
+ok "Infrastructure deployed successfully."
 
 # ── Done ─────────────────────────────────────────────────────
 show_success_banner "SAM Setup Complete! 🎉"
