@@ -120,7 +120,7 @@ validate_env_arrays() {
 # Get GitHub repository in ORG/REPO format
 # Usage: get_github_repo
 get_github_repo() {
-  echo "${GITHUB[ORG]}/${GITHUB[REPO]}"
+  echo "${GITHUB_ORG}/${GITHUB_REPO}"
 }
 
 # ── AWS Helper Functions ────────────────────────────────────────
