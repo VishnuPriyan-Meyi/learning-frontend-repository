@@ -268,7 +268,8 @@ Resources:
                 - Name: BuildOutput
               Configuration:
                 BucketName: !Ref FrontendBucketName
-                ObjectKey: frontend/
+                Extract: true
+                ObjectKey: frontend
               RunOrder: 1
 
             - Name: CloudFrontInvalidation
@@ -280,7 +281,7 @@ Resources:
               InputArtifacts:
                 - Name: SourceOutput
               Configuration:
-                ProjectName: !Ref CloudFrontInvalidationProject  # References project above
+                ProjectName: !Ref CloudFrontInvalidationProject
               RunOrder: 2
 
 # ── Outputs ───────────────────────────────────────────────────

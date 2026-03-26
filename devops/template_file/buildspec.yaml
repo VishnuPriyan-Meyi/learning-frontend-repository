@@ -13,8 +13,9 @@ phases:
       - echo Building React Application
       - cd $CODEBUILD_SRC_DIR/frontend-deployment && npm run build
 
-# No post_build deploy step here.
-# Deployment is handled as a separate stage in CodePipeline (S3 Deploy action).
+  post_build:
+    commands:
+      - echo "Build completed successfully"
 
 artifacts:
   base-directory: frontend-deployment/build
