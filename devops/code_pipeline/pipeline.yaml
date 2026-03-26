@@ -130,14 +130,15 @@ Resources:
                   - s3:GetBucketAcl
                   - s3:GetBucketLocation
                 Resource: 
-                  - Fn::ImportValue: !Sub "${BootstrapStackName}-SharedArtifactBucketArn"
+                  - !Sub 'arn:aws:s3:::${ArtifactsBucketName}'
+                  - !Sub 'arn:aws:s3:::${ArtifactsBucketName}/*'
               - Effect: Allow
                 Action:
                   - s3:GetObject
                   - s3:PutObject
                   - s3:DeleteObject
                 Resource: 
-                  - Fn::Sub: "${BootstrapStackName}-SharedArtifactBucketArn}/frontend/*"
+                  - !Sub 'arn:aws:s3:::${ArtifactsBucketName}/frontend/*'
               - Effect: Allow
                 Action:
                   - cloudfront:CreateInvalidation
@@ -179,7 +180,7 @@ Resources:
         ImagePullCredentialsType: CODEBUILD
         EnvironmentVariables:
           - Name: ARTIFACTS_BUCKET
-            Value: shared-dev-artifact-bucket
+            Value: !Ref ArtifactsBucketName
             Type: PLAINTEXT
           - Name: ARTIFACT_BUCKET_PREFIX
             Value: frontend/
@@ -216,7 +217,7 @@ Resources:
 
       ArtifactStore:
         Type: S3
-        Location: shared-dev-artifact-bucket
+        Location: !Ref ArtifactsBucketName
 
       Stages:
 
@@ -290,4 +291,4 @@ Outputs:
 
   ArtifactsBucketName:
     Description: S3 bucket used for pipeline artifacts
-    Value: shared-dev-artifact-bucket
+    Value: !Ref ArtifactsBucketName
