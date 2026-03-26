@@ -120,7 +120,7 @@ Resources:
                   - logs:CreateLogStream
                   - logs:PutLogEvents
                 Resource: 
-                  - Fn::Sub: 'arn:aws:logs:*:log-group:/aws/codebuild/react-build-project'
+                  - !Sub 'arn:aws:logs:*:log-group:/aws/codebuild/react-build-project'
               - Effect: Allow
                 Action:
                   - s3:GetObject
@@ -143,7 +143,7 @@ Resources:
                 Action:
                   - cloudfront:CreateInvalidation
                 Resource: 
-                  - Fn::Sub: 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${CloudFrontDistributionId}'
+                  - !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${CloudFrontDistributionId}'
               - Effect: Allow
                 Action:
                   - codebuild:CreateReportGroup
@@ -151,7 +151,7 @@ Resources:
                   - codebuild:UpdateReport
                   - codebuild:BatchPutTestCases
                 Resource: 
-                  - Fn::Sub: 'arn:aws:logs:*:log-group:/aws/codebuild/cloudfront-invalidation-project'
+                  - !Sub 'arn:aws:logs:*:log-group:/aws/codebuild/cloudfront-invalidation-project'
 
   # ── GitHub Connection ─────────────────────────────────────────
   # NOTE: The connection is NOT created by CloudFormation here.
