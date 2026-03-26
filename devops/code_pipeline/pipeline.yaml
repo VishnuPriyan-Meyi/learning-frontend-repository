@@ -186,9 +186,6 @@ Resources:
           - Name: ARTIFACTS_BUCKET
             Value: !Ref ArtifactsBucketName
             Type: PLAINTEXT
-          - Name: ARTIFACT_BUCKET_PREFIX
-            Value: frontend
-            Type: PLAINTEXT
 
   # ── CodeBuild: CloudFront Invalidation Project ────────────────
   # Runs deploy.sh to invalidate the CloudFront cache after S3 upload.
