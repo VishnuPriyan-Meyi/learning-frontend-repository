@@ -237,6 +237,7 @@ Resources:
                 ConnectionArn: !Ref GitHubConnectionArn  # Passed in from .env
                 FullRepositoryId: !Ref GitHubOrgRepo
                 BranchName: !Ref GitHubBranch
+                DetectChanges: true  # Auto-trigger pipeline on push to BranchName
 
         # Stage 2: Build — npm install + npm run build
         - Name: Build
