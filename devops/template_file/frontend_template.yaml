@@ -36,7 +36,7 @@ Resources:
             Resource: !Sub "arn:aws:s3:::${SharedBucketName}/*"
             Condition:
               StringEquals:
-                AWS:SourceArn: !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${FrontendDistribution}"
+                AWS:SourceArn: !GetAtt FrontendDistribution.Arn
 
   # ── CloudFront Origin Access Control (OAC) ────────────────────
   # Modern replacement for OAI — allows CloudFront to securely access
