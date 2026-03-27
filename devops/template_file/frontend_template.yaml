@@ -19,24 +19,6 @@ Parameters:
 
 Resources:
 
-  # ── S3 Bucket Policy for CloudFront OAC  ───────────────────────
-  FrontendBucketPolicy:
-    Type: AWS::S3::BucketPolicy
-    Properties:
-      Bucket: !Ref SharedBucketName
-      PolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Sid: 'AllowCloudFrontServicePrincipal'
-            Effect: Allow
-            Principal:
-              Service: cloudfront.amazonaws.com
-            Action: s3:GetObject
-            Resource: !Sub "${SharedBucketName}/frontend/*"
-            Condition:
-              StringEquals:
-                'AWS:SourceArn': !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${FrontendDistribution}"
-
   # ── CloudFront Origin Access Control (OAC)   ────────────────────
   # Modern replacement for OAI — allows CloudFront to securely access
   # private S3 bucket. Required for bucket policy above to work.
