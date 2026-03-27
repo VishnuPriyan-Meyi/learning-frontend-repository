@@ -9,9 +9,6 @@ Parameters:
   CloudFrontDistribution:
     Type: String
     Description: Name of the CloudFront distribution
-  SharedBucketName:
-    Type: String
-    Description: Name of the shared S3 bucket for artifacts (pre-existing, created by bootstrap stack)
   AWSRegion:
     Type: String
     Description: AWS region for deployment
@@ -19,26 +16,21 @@ Parameters:
 
 Resources:
 
-  # ── CloudFront Origin Access Control (OAC)   ────────────────────
-  # Modern replacement for OAI — allows CloudFront to securely access
-  # private S3 bucket. Required for bucket policy above to work.
-  CloudFrontOAC:
-    Type: AWS::CloudFront::OriginAccessControl
+  # ── S3 Bucket for Frontend  ─────────────────────────────────────
+  FrontendBucket:
+    Type: AWS::S3::Bucket
     Properties:
-      OriginAccessControlConfig:
-        Name: FrontendS3OAC
-        OriginAccessControlOriginType: s3
-        SigningBehavior: always
-        SigningProtocol: sigv4
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
 
-  # ── S3 Bucket Policy ──────────────────────────────────────────
-  # Grants CloudFront (via OAC) permission to read objects from the
-  # /frontend prefix. Without this, S3 returns "Access Denied" even
-  # though OAC is configured & signing is set up.
+  # ── S3 Bucket Policy for CloudFront OAC  ───────────────────────
   FrontendBucketPolicy:
     Type: AWS::S3::BucketPolicy
     Properties:
-      Bucket: !Ref SharedBucketName
+      Bucket: !Ref FrontendBucket
       PolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -47,12 +39,20 @@ Resources:
             Principal:
               Service: cloudfront.amazonaws.com
             Action: s3:GetObject
-            Resource: !Sub 'arn:aws:s3:::${SharedBucketName}/frontend/*'
+            Resource: !Sub 'arn:aws:s3:::${FrontendBucket}/*'
             Condition:
               StringEquals:
-                AWS:SourceArn: !Sub
-                  - 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${DistributionId}'
-                  - DistributionId: !GetAtt FrontendDistribution.Id
+                AWS:SourceArn: !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${FrontendDistribution.Id}'
+
+  # ── CloudFront Origin Access Control (OAC)   ────────────────────
+  CloudFrontOAC:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: FrontendS3OAC
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
 
   # ── CloudFront Distribution  ───────────────────────────────────
   FrontendDistribution:
@@ -65,8 +65,7 @@ Resources:
 
         Origins:
           - Id: ReactS3Origin
-            DomainName: !Sub "${SharedBucketName}.s3.${AWSRegion}.amazonaws.com"
-            OriginPath: /frontend
+            DomainName: !Sub "${FrontendBucket}.s3.${AWSRegion}.amazonaws.com"
             # Use OAC (not legacy OAI) for secure private S3 access
             OriginAccessControlId: !GetAtt CloudFrontOAC.Id
             S3OriginConfig:
@@ -102,7 +101,7 @@ Outputs:
 
   BucketName:
     Description: S3 bucket where React build files are stored
-    Value: !Ref SharedBucketName
+    Value: !Ref FrontendBucket
 
   CloudFrontURL:
     Description: Public URL of CloudFront distribution

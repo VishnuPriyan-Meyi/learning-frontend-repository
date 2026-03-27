@@ -58,7 +58,6 @@ sam deploy \
   --parameter-overrides \
     BootstrapStackName="${BOOTSTRAP[STACK_NAME]}" \
     CloudFrontDistribution="${STACK[INFRA_NAME]}" \
-    SharedBucketName="${BOOTSTRAP[BUCKET_NAME]}" \
     AWSRegion="${AWS[REGION]}" \
   --region "${AWS[REGION]}"
 
