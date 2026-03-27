@@ -23,41 +23,41 @@ load_env_config
 # ──────────────────────────────────────────────────────────────
 
 # ── Step 1: Deploy Pipeline Stack with SAM ─────────────────────
-echo "[ Step 1 ] Deploying pipeline stack: $STACK_PIPELINE_NAME"
+echo "[ Step 1 ] Deploying pipeline stack: ${STACK[PIPELINE_NAME]}"
 info "This creates IAM roles, CodeBuild projects, GitHub connection, and the pipeline using SAM..."
 
 # Use placeholder values for pipeline deployment (will be updated later)
 sam deploy \
   --template-file "$SCRIPT_DIR/code_pipeline/pipeline.yaml" \
-  --stack-name "$STACK_PIPELINE_NAME" \
+  --stack-name "${STACK[PIPELINE_NAME]}" \
   --capabilities CAPABILITY_NAMED_IAM \
   --parameter-overrides \
-    BootstrapStackName="$BOOTSTRAP_STACK_NAME" \
+    BootstrapStackName="${BOOTSTRAP[STACK_NAME]}" \
     GitHubOrgRepo="$(get_github_repo)" \
-    GitHubBranch="$GITHUB_BRANCH" \
-    FrontendBucketName="$BOOTSTRAP_BUCKET_NAME" \
+    GitHubBranch="${GITHUB[BRANCH]}" \
+    FrontendBucketName="${BOOTSTRAP[BUCKET_NAME]}" \
     CloudFrontDistributionId="PLACEHOLDER_DISTRIBUTION_ID" \
-    GitHubConnectionArn="$GITHUB_CONNECTION_ARN" \
-    ArtifactsBucketName="$BOOTSTRAP_BUCKET_NAME" \
-  --region "$AWS_REGION"
+    GitHubConnectionArn="${GITHUB[CONNECTION_ARN]}" \
+    ArtifactsBucketName="${BOOTSTRAP[BUCKET_NAME]}" \
+  --region "${AWS[REGION]}"
 
 ok "Pipeline stack deployed using SAM."
 divider
 
 # ── Step 2: Deploy Infrastructure (CloudFront) with SAM ────
-echo "[ Step 2 ] Deploying infrastructure stack: $STACK_INFRA_NAME"
+echo "[ Step 2 ] Deploying infrastructure stack: ${STACK[INFRA_NAME]}"
 info "This creates your S3 bucket and CloudFront distribution using SAM..."
 
 sam deploy \
   --template-file "$SCRIPT_DIR/template_file/frontend_template.yaml" \
-  --stack-name "$STACK_INFRA_NAME" \
+  --stack-name "${STACK[INFRA_NAME]}" \
   --capabilities CAPABILITY_IAM \
   --parameter-overrides \
-    BootstrapStackName="$BOOTSTRAP_STACK_NAME" \
-    CloudFrontDistribution="$STACK_INFRA_NAME" \
-    SharedBucketName="$BOOTSTRAP_BUCKET_NAME" \
-    AWSRegion="$AWS_REGION" \
-  --region "$AWS_REGION"
+    BootstrapStackName="${BOOTSTRAP[STACK_NAME]}" \
+    CloudFrontDistribution="${STACK[INFRA_NAME]}" \
+    SharedBucketName="${BOOTSTRAP[BUCKET_NAME]}" \
+    AWSRegion="${AWS[REGION]}" \
+  --region "${AWS[REGION]}"
 
 ok "Infrastructure stack deployed."
 divider
@@ -65,8 +65,8 @@ divider
 # ── Step 3: Fetch Outputs + Update Pipeline ─────────────────
 echo "[ Step 3 ] Fetching stack outputs..."
 
-STACK_BUCKET=$(get_stack_output "$STACK_INFRA_NAME" "BucketName" "$AWS_REGION")
-CLOUDFRONT_URL=$(get_stack_output "$STACK_INFRA_NAME" "CloudFrontURL" "$AWS_REGION")
+STACK_BUCKET=$(get_stack_output "${STACK[INFRA_NAME]}" "BucketName" "${AWS[REGION]}")
+CLOUDFRONT_URL=$(get_stack_output "${STACK[INFRA_NAME]}" "CloudFrontURL" "${AWS[REGION]}")
 CLOUDFRONT_DOMAIN=$(echo "$CLOUDFRONT_URL" | sed 's|https://||')
 DISTRIBUTION_ID=$(aws cloudfront list-distributions \
   --query "DistributionList.Items[?DomainName=='$CLOUDFRONT_DOMAIN'].Id" \
@@ -80,17 +80,17 @@ ok "CloudFront Dist. ID: $DISTRIBUTION_ID"
 echo "[ Step 4 ] Updating pipeline with correct CloudFront distribution ID..."
 sam deploy \
   --template-file "$SCRIPT_DIR/code_pipeline/pipeline.yaml" \
-  --stack-name "$STACK_PIPELINE_NAME" \
+  --stack-name "${STACK[PIPELINE_NAME]}" \
   --capabilities CAPABILITY_NAMED_IAM \
   --parameter-overrides \
-    BootstrapStackName="$BOOTSTRAP_STACK_NAME" \
+    BootstrapStackName="${BOOTSTRAP[STACK_NAME]}" \
     GitHubOrgRepo="$(get_github_repo)" \
-    GitHubBranch="$GITHUB_BRANCH" \
-    FrontendBucketName="$STACK_BUCKET" \
-    CloudFrontDistributionId="$DISTRIBUTION_ID" \
-    GitHubConnectionArn="$GITHUB_CONNECTION_ARN" \
-    ArtifactsBucketName="$BOOTSTRAP_BUCKET_NAME" \
-  --region "$AWS_REGION"
+    GitHubBranch="${GITHUB[BRANCH]}" \
+    FrontendBucketName="${STACK_BUCKET}" \
+    CloudFrontDistributionId="${DISTRIBUTION_ID}" \
+    GitHubConnectionArn="${GITHUB[CONNECTION_ARN]}" \
+    ArtifactsBucketName="${BOOTSTRAP[BUCKET_NAME]}" \
+  --region "${AWS[REGION]}"
 
 ok "Pipeline updated with correct CloudFront distribution ID."
 divider
@@ -101,14 +101,14 @@ ok "Infrastructure deployed successfully."
 show_success_banner "SAM Setup Complete! 🎉"
 echo "  S3 Bucket:       $STACK_BUCKET"
 echo "  CloudFront URL:  $CLOUDFRONT_URL"
-echo "  Pipeline Stack:  $STACK_PIPELINE_NAME"
+echo "  Pipeline Stack:  ${STACK[PIPELINE_NAME]}"
 echo ""
 info "Push your code to trigger the pipeline:"
 echo ""
 echo "    git add ."
 echo "    git commit -m \"initial deploy with SAM\""
-echo "    git push origin $GITHUB_BRANCH"
+echo "    git push origin ${GITHUB[BRANCH]}"
 echo ""
 echo "  Monitor pipeline:"
-echo "  https://$AWS_REGION.console.aws.amazon.com/codesuite/codepipeline/pipelines"
+echo "  https://${AWS[REGION]}.console.aws.amazon.com/codesuite/codepipeline/pipelines"
 echo ""
