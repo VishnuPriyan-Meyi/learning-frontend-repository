@@ -43,9 +43,9 @@ update_env_var() {
 # Load and validate environment configuration
 # Usage: load_env_config [env_file]
 load_env_config() {
-  local ENV_FILE="${1:-dev.env.sh}"
+  local ENV_FILE="${1:-env/dev.env.sh}"
   
-  # Look for env file in project root (one level up from devops/)
+  # Look for env file in project root
   if [ ! -f "$ENV_FILE" ]; then
     # If not found in current dir, try project root
     ENV_FILE="$(dirname "$SCRIPT_DIR")/$ENV_FILE"
@@ -58,69 +58,6 @@ load_env_config() {
   # Source the environment file with associative arrays
   # shellcheck disable=SC1090
   source "$ENV_FILE"
-  
-  # Export associative array values as regular variables to avoid scoping issues
-  export GITHUB_ORG="${GITHUB[ORG]}"
-  export GITHUB_REPO="${GITHUB[REPO]}"
-  export GITHUB_BRANCH="${GITHUB[BRANCH]}"
-  export GITHUB_CONNECTION_ARN="${GITHUB[CONNECTION_ARN]}"
-  export AWS_REGION="${AWS[REGION]}"
-  export ENVIRONMENT_ENV="${ENVIRONMENT[ENV]}"
-  export STACK_INFRA_NAME="${STACK[INFRA_NAME]}"
-  export STACK_PIPELINE_NAME="${STACK[PIPELINE_NAME]}"
-  export FRONTEND_BUCKET_NAME="${FRONTEND[BUCKET_NAME]}"
-  export BOOTSTRAP_STACK_NAME="${BOOTSTRAP[STACK_NAME]}"
-  export BOOTSTRAP_BUCKET_NAME="${BOOTSTRAP[BUCKET_NAME]}"
-  export BOOTSTRAP_FRONTEND_PREFIX="${BOOTSTRAP[FRONTEND_PREFIX]}"
-}
-
-# Validate required environment variables from associative arrays
-# Usage: validate_env_arrays
-validate_env_arrays() {
-  # Ensure environment is loaded
-  load_env_config
-  
-  # Debug: Check if arrays are loaded
-  echo "DEBUG: GitHub ORG='${GITHUB[ORG]}'"
-  echo "DEBUG: GitHub REPO='${GITHUB[REPO]}'"
-  echo "DEBUG: GitHub BRANCH='${GITHUB[BRANCH]}'"
-  echo "DEBUG: GitHub CONNECTION_ARN='${GITHUB[CONNECTION_ARN]}'"
-  
-  # Check GitHub config
-  if [ -z "${GITHUB[ORG]}" ] || [ -z "${GITHUB[REPO]}" ] || [ -z "${GITHUB[BRANCH]}" ] || [ -z "${GITHUB[CONNECTION_ARN]}" ]; then
-    fail "GitHub configuration is incomplete. Please check GITHUB array in dev.env.sh"
-  fi
-  
-  # Check AWS config
-  if [ -z "${AWS[REGION]}" ]; then
-    fail "AWS configuration is incomplete. Please check AWS array in dev.env.sh"
-  fi
-  
-  # Check Environment config
-  if [ -z "${ENVIRONMENT[ENV]}" ]; then
-    fail "Environment configuration is incomplete. Please check ENVIRONMENT array in dev.env.sh"
-  fi
-  
-  # Check Stack config
-  if [ -z "${STACK[INFRA_NAME]}" ] || [ -z "${STACK[PIPELINE_NAME]}" ]; then
-    fail "Stack configuration is incomplete. Please check STACK array in dev.env.sh"
-  fi
-  
-  # Check Frontend config
-  if [ -z "${FRONTEND[BUCKET_NAME]}" ]; then
-    fail "Frontend configuration is incomplete. Please check FRONTEND array in dev.env.sh"
-  fi
-  
-  # Check for placeholder values
-  if [[ "${GITHUB[ORG]}" == *"your-"* ]] || [[ "${GITHUB[REPO]}" == *"your-"* ]] || [[ "${FRONTEND[BUCKET_NAME]}" == *"your-"* ]]; then
-    fail "Please replace placeholder values in dev.env.sh with your actual configuration"
-  fi
-}
-
-# Get GitHub repository in ORG/REPO format
-# Usage: get_github_repo
-get_github_repo() {
-  echo "${GITHUB_ORG}/${GITHUB_REPO}"
 }
 
 # ── AWS Helper Functions ────────────────────────────────────────
@@ -202,7 +139,7 @@ show_section() {
 # ── Export Functions ───────────────────────────────────────────
 # Export all functions for use in other scripts
 export -f ok info warn fail divider
-export -f update_env_var load_env_config validate_env_arrays get_github_repo
+export -f update_env_var load_env_config get_github_repo
 export -f validate_aws_cli validate_sam_cli
 export -f get_stack_output wait_for_stack
 export -f show_success_banner show_section
