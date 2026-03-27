@@ -72,6 +72,8 @@ Resources:
                 Resource: 
                   - !Sub 'arn:aws:s3:::${ArtifactsBucketName}'
                   - !Sub 'arn:aws:s3:::${ArtifactsBucketName}/*'
+                  - !Sub 'arn:aws:s3:::${FrontendBucketName}'
+                  - !Sub 'arn:aws:s3:::${FrontendBucketName}/*'
               - Effect: Allow
                 Action:
                   - codebuild:StartBuild
