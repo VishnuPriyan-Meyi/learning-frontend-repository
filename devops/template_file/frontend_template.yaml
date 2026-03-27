@@ -9,10 +9,6 @@ Parameters:
   CloudFrontDistribution:
     Type: String
     Description: Name of the CloudFront distribution
-  AWSRegion:
-    Type: String
-    Description: AWS region for deployment
-    Default: us-east-1
 
 Resources:
 
@@ -46,6 +42,7 @@ Resources:
     Type: AWS::CloudFront::OriginAccessControl
     Properties:
       OriginAccessControlConfig:
+        Name: FrontendS3OAC
         OriginAccessControlOriginType: s3
         SigningBehavior: always
         SigningProtocol: sigv4
@@ -61,7 +58,7 @@ Resources:
 
         Origins:
           - Id: ReactS3Origin
-            DomainName: !Sub "${FrontendBucket}.s3.${AWSRegion}.amazonaws.com"
+            DomainName: !GetAtt FrontendBucket.RegionalDomainName
             # Use OAC (not legacy OAI) for secure private S3 access
             OriginAccessControlId: !GetAtt CloudFrontOAC.Id
             S3OriginConfig:
