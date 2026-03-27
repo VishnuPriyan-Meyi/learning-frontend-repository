@@ -18,6 +18,9 @@ source "$SCRIPT_DIR/init.sh"
 validate_prerequisites
 
 # ── Load configuration from .env ─────────────────────────────
+# Declare associative arrays in main script scope before calling function
+declare -A GITHUB AWS ENVIRONMENT STACK FRONTEND BOOTSTRAP
+
 load_env_config
 
 # ──────────────────────────────────────────────────────────────
