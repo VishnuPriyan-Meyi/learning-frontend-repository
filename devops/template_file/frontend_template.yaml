@@ -40,9 +40,6 @@ Resources:
               Service: cloudfront.amazonaws.com
             Action: s3:GetObject
             Resource: !Sub 'arn:aws:s3:::${FrontendBucket}/*'
-            Condition:
-              StringEquals:
-                AWS:SourceArn: !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${FrontendDistribution.Id}'
 
   # ── CloudFront Origin Access Control (OAC)   ────────────────────
   CloudFrontOAC:
