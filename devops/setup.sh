@@ -38,7 +38,7 @@ sam deploy \
     BootstrapStackName="${BOOTSTRAP[STACK_NAME]}" \
     GitHubOrgRepo="$(get_github_repo)" \
     GitHubBranch="${GITHUB[BRANCH]}" \
-    FrontendBucketName="${BOOTSTRAP[BUCKET_NAME]}" \
+    FrontendBucketName="PLACEHOLDER_FRONTEND_BUCKET" \
     CloudFrontDistributionId="PLACEHOLDER_DISTRIBUTION_ID" \
     GitHubConnectionArn="${GITHUB[CONNECTION_ARN]}" \
     ArtifactsBucketName="${BOOTSTRAP[BUCKET_NAME]}" \
