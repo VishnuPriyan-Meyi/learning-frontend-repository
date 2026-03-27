@@ -5,7 +5,7 @@
 # =============================================================
 
 # ── GitHub Config Object ───────────────────────────────────────
-declare -A GITHUB=(
+GITHUB=(
   [ORG]="VishnuPriyan-Meyi"
   [REPO]="learning-frontend-repository"
   [BRANCH]="feature/frontend-sam-pipeline"
@@ -13,28 +13,28 @@ declare -A GITHUB=(
 )
 
 # ── AWS Config Object ──────────────────────────────────────────
-declare -A AWS=(
+AWS=(
   [REGION]="us-east-1"
 )
 
 # ── Environment Config Object ───────────────────────────────────
-declare -A ENVIRONMENT=(
+ENVIRONMENT=(
   [ENV]="dev"
 )
 
 # ── Stack Config Object ────────────────────────────────────────
-declare -A STACK=(
+STACK=(
   [INFRA_NAME]="frontend-infra"
   [PIPELINE_NAME]="react-dev-frontend-pipeline"
 )
 
 # ── Frontend Config Object ─────────────────────────────────────
-declare -A FRONTEND=(
+FRONTEND=(
   [BUCKET_NAME]="react-dev-frontend-bucket"
 )
 
 # ── Bootstrap Config Object ────────────────────────────────────
-declare -A BOOTSTRAP=(
+BOOTSTRAP=(
   [STACK_NAME]="shared-${ENVIRONMENT[ENV]}-artifact-bootstrap"
   [BUCKET_NAME]="shared-${ENVIRONMENT[ENV]}-artifact-bucket"
   [FRONTEND_PREFIX]="frontend"
