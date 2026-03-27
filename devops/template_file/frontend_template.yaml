@@ -73,7 +73,6 @@ Resources:
           AllowedMethods:
             - GET
             - HEAD
-          # Required field — defines how query strings/cookies are cached
           ForwardedValues:
             QueryString: false
             Cookies:
