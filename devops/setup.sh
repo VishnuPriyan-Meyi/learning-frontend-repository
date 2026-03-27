@@ -29,7 +29,7 @@ load_env_config
 echo "[ Step 1 ] Deploying pipeline stack: ${STACK[PIPELINE_NAME]}"
 info "This creates IAM roles, CodeBuild projects, GitHub connection, and the pipeline using SAM..."
 
-# Use placeholder values for pipeline deployment (will be updated later)
+# Use actual bucket name from environment config for pipeline deployment
 sam deploy \
   --template-file "$SCRIPT_DIR/code_pipeline/pipeline.yaml" \
   --stack-name "${STACK[PIPELINE_NAME]}" \
@@ -38,7 +38,7 @@ sam deploy \
     BootstrapStackName="${BOOTSTRAP[STACK_NAME]}" \
     GitHubOrgRepo="$(get_github_repo)" \
     GitHubBranch="${GITHUB[BRANCH]}" \
-    FrontendBucketName="PLACEHOLDER_FRONTEND_BUCKET" \
+    FrontendBucketName="${FRONTEND[BUCKET_NAME]}" \
     CloudFrontDistributionId="PLACEHOLDER_DISTRIBUTION_ID" \
     GitHubConnectionArn="${GITHUB[CONNECTION_ARN]}" \
     ArtifactsBucketName="${BOOTSTRAP[BUCKET_NAME]}" \
@@ -58,6 +58,8 @@ sam deploy \
   --parameter-overrides \
     BootstrapStackName="${BOOTSTRAP[STACK_NAME]}" \
     CloudFrontDistribution="${STACK[INFRA_NAME]}" \
+    FrontendBucketName="${FRONTEND[BUCKET_NAME]}" \
+    AWSRegion="${AWS[REGION]}" \
   --region "${AWS[REGION]}"
 
 ok "Infrastructure stack deployed."
