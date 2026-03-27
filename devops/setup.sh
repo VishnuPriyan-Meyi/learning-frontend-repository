@@ -58,7 +58,6 @@ sam deploy \
   --parameter-overrides \
     BootstrapStackName="${BOOTSTRAP[STACK_NAME]}" \
     CloudFrontDistribution="${STACK[INFRA_NAME]}" \
-    AWSRegion="${AWS[REGION]}" \
   --region "${AWS[REGION]}"
 
 ok "Infrastructure stack deployed."
