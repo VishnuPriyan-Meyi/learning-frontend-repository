@@ -43,7 +43,7 @@ update_env_var() {
 # Load and validate environment configuration
 # Usage: load_env_config [env_file]
 load_env_config() {
-  local ENV_FILE="${1:-env/dev.env.sh}"
+  local ENV_FILE="${1:-$SCRIPT_DIR/../env/dev.env.sh}"
   
   # Look for env file in project root
   if [ ! -f "$ENV_FILE" ]; then
@@ -63,7 +63,7 @@ load_env_config() {
 # Get GitHub repository in ORG/REPO format
 # Usage: get_github_repo
 get_github_repo() {
-  echo "${GITHUB_ORG}/${GITHUB_REPO}"
+  echo "${GITHUB[ORG]}/${GITHUB[REPO]}"
 }
 
 # ── AWS Helper Functions ────────────────────────────────────────
