@@ -11,7 +11,7 @@ Parameters:
     Description: Name of the CloudFront distribution
   SharedBucketName:
     Type: String
-    Description: Name of the shared S3 bucket for artifacts
+    Description: Name of the shared S3 bucket for artifacts (pre-existing, created by bootstrap stack)
   AWSRegion:
     Type: String
     Description: AWS region for deployment
@@ -30,6 +30,29 @@ Resources:
         OriginAccessControlOriginType: s3
         SigningBehavior: always
         SigningProtocol: sigv4
+
+  # ── S3 Bucket Policy ──────────────────────────────────────────
+  # Grants CloudFront (via OAC) permission to read objects from the
+  # /frontend prefix. Without this, S3 returns "Access Denied" even
+  # though OAC is configured & signing is set up.
+  FrontendBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref SharedBucketName
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AllowCloudFrontOACReadFrontend
+            Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub 'arn:aws:s3:::${SharedBucketName}/frontend/*'
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub
+                  - 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${DistributionId}'
+                  - DistributionId: !GetAtt FrontendDistribution.Id
 
   # ── CloudFront Distribution  ───────────────────────────────────
   FrontendDistribution:
