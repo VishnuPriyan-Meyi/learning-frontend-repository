@@ -47,8 +47,8 @@ load_env_config() {
   
   # Look for env file in project root
   if [ ! -f "$ENV_FILE" ]; then
-    # If not found in current dir, try project root
-    ENV_FILE="$(dirname "$SCRIPT_DIR")/$ENV_FILE"
+    # If not found, try project root
+    ENV_FILE="$(dirname "$SCRIPT_DIR")/env/dev.env.sh"
   fi
   
   if [ ! -f "$ENV_FILE" ]; then
