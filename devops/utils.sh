@@ -60,6 +60,12 @@ load_env_config() {
   source "$ENV_FILE"
 }
 
+# Get GitHub repository in ORG/REPO format
+# Usage: get_github_repo
+get_github_repo() {
+  echo "${GITHUB_ORG}/${GITHUB_REPO}"
+}
+
 # ── AWS Helper Functions ────────────────────────────────────────
 
 # Validate AWS CLI installation and credentials
